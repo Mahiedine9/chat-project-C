@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         if (curr_sd < 0)
             SYS_ERR("Accept failed!");
 
-        PRINT("Client connected");
+        PRINT("Client connected\n");
     
         do_service(curr_sd);
         close(curr_sd);  
@@ -102,12 +102,16 @@ void do_service(int sd)
     PRINT("Received pseudo %s\n", mypseudo);
         
     do {
-        l = read(sd, buffer, MSG_SIZE-1);
+        l = read(sd, &msg, sizeof(msg));
         if (l == 0) break;
-        buffer[l] = 0;
+        strcpy(buffer, msg.msg);
         PRINT("Server: received %s\n", buffer);
-        
-        for (i=0; i<l; i++) buffer[i] = toupper(buffer[i]);
+
+        i = 0;
+        while (buffer[i] != 0) {
+            buffer[i] = toupper(buffer[i]);
+            i++;
+        }
         PRINT("Server: sending %s\n", buffer);
 
         strcpy(msg.pseudo, mypseudo);

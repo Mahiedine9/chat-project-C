@@ -142,6 +142,8 @@ int main(int argc, char *argv[])
     if (!batch) buffer = malloc(MSG_SIZE);
     
     while(1) {
+        struct message msg;
+        strcpy(msg.pseudo, pseudo); 
         if (batch) {
             size_t len;
             r = getline(&buffer, &len, batch_file);
@@ -156,7 +158,8 @@ int main(int argc, char *argv[])
             PRINT("Quit\n");
             break;
         }
-        write(sd, buffer, strlen(buffer));
+        strcpy(msg.msg, buffer);
+        write(sd, &msg, sizeof(msg));
     }
 
     PRINT("Closing ...\n");
