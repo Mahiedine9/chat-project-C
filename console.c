@@ -111,15 +111,17 @@ int console_readline(char *buffer, int max_buf_sz)
     int ch = wgetch(input_win);
     while (ch != '\n' && n < (max_buf_sz - 1)) {
         if (ch == KEY_BACKSPACE || ch == KEY_DC || ch == 127) {
-            n--;
-            buffer[n] = 0;
-            //wdelch(input_win);
-            int x,y;
-            getyx(input_win, y, x);
-            mvwprintw(input_win, y, 1, "> %s ", buffer);
-            getyx(input_win, y, x);
-            wmove(input_win, y, x-1);
-            wrefresh(input_win);
+            if(n > 0){
+                n--;
+                buffer[n] = 0;
+                //wdelch(input_win);
+                int x,y;
+                getyx(input_win, y, x);
+                mvwprintw(input_win, y, 1, "> %s ", buffer);
+                getyx(input_win, y, x);
+                wmove(input_win, y, x-1);
+                wrefresh(input_win);
+            }
         }
         else if (ch == KEY_RESIZE) {
             console_calculate_sizes();
