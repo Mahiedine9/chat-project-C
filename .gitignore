@@ -1,0 +1,4 @@
+*.o
+*~
+mtc_server
+mtc_client

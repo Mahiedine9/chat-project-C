@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
     }
 
     PRINT("Closing ...\n");
-    sleep(1);
+    if (batch) sleep(1);
     
     free(buffer);
     PRINT("Free completed\n");
