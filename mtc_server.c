@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
     base_sd = init_sd(myport);
 
     while (!err) {
+        addrlen = sizeof(c_add);
         curr_sd = accept(base_sd, CAST_ADDR(&c_add), &addrlen);
         if (curr_sd < 0)
             SYS_ERR("Accept failed!");
