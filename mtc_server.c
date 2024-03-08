@@ -3,7 +3,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
-
+#include <signal.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -15,6 +16,17 @@ int init_sd(int myport);
 void do_service(int sd);
 
 static int verbose = 0;
+
+
+//handler
+void sig_child(int signo )
+{
+pid_t pid ;
+while(( pid = waitpid( -1 , NULL , WNOHANG ) ) > 0)
+    printf(" Process %d terminated \n", pid ) ;
+}
+
+
 
 #define PRINT(...)                         \
     do {                                   \
@@ -34,6 +46,13 @@ int main(int argc, char *argv[])
   
     if (argc < 2)
         USR_ERR("usage: server [-v] <port>");
+    pid_t ch;
+    struct sigaction sa ;
+    //initialisation de la structure
+    sa.sa_handler = sig_child;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask) ;
+    sigaction(SIGCHLD,&sa,NULL) ;
 
     while ((opt = getopt(argc, argv, "v")) != -1) {
         if (opt == 'v') verbose = 1;
@@ -53,9 +72,14 @@ int main(int argc, char *argv[])
             SYS_ERR("Accept failed!");
 
         PRINT("Client connected\n");
-    
-        do_service(curr_sd);
-        close(curr_sd);  
+        ch = fork();
+        if (ch == 0)
+        {
+            do_service(curr_sd);
+            close(curr_sd);
+            exit(0);
+        }
+        
     }
     close(base_sd);
 }
