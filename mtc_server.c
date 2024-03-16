@@ -3,16 +3,18 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
+
 #include <signal.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <pthread.h> 
+
 #include "utils.h"
 #include "protocol.h"
 
-#define MAXNTHREAD 5
+int init_sd(int myport);
+void do_service(int sd);
 
 static int verbose = 0;
 
@@ -21,7 +23,7 @@ static int verbose = 0;
 void sig_child(int signo )
 {
 pid_t pid ;
-while(( pid = waitpid( -1 , NULL , WNOHANG) ) > 0)
+while(( pid = waitpid( -1 , NULL , WNOHANG ) ) > 0)
     printf(" Process %d terminated \n", pid ) ;
 }
 
@@ -34,50 +36,54 @@ while(( pid = waitpid( -1 , NULL , WNOHANG) ) > 0)
     } while (0)
 
 
-
-int init_sd(int myport);
-void do_service(int sd);
-
-pthread_t tid[MAXNTHREAD];
-
-
-void * body(void * arg)
+int main(int argc, char *argv[])
 {
     struct sockaddr_in c_add;
+    int base_sd, curr_sd;
     socklen_t addrlen;
-    int base_sd = (int)arg;
-    int sd;
+    int myport;
+    int err = 0;
+    int opt;
+  
+    if (argc < 2)
+        USR_ERR("usage: server [-v] <port>");
+    pid_t ch;
+    struct sigaction sa ;
+    //initialisation de la structure
+    sa.sa_handler = sig_child;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask) ;
+    sigaction(SIGCHLD,&sa,NULL) ;
 
-    while (1) {
-        sd = accept(base_sd, CAST_ADDR(&c_add), &addrlen);
-        do_service(sd);
-        close(sd);
+    while ((opt = getopt(argc, argv, "v")) != -1) {
+        if (opt == 'v') verbose = 1;
+        else USR_ERR("usage: server [-v] <port>");
     }
 
-    return NULL;
-}
-
-
-
-int main(int argc, char * argv[])
-{
-    int base_sd;
-    int myport;
-
-    if (argc < 2)
-        USR_ERR("usage: server <port>");
-    myport = atoi(argv[1]);
-
+    if (optind >= argc) USR_ERR("Missing port. Usage: server [-v] <port>");
+        
+    myport = atoi(argv[optind]);
+  
     base_sd = init_sd(myport);
 
-    for (int i = 0; i < MAXNTHREAD; i++){
-        pthread_create(&tid[i], 0, body, (void *)base_sd);
+    while (!err) {
+        addrlen = sizeof(c_add);
+        curr_sd = accept(base_sd, CAST_ADDR(&c_add), &addrlen);
+        if (curr_sd < 0)
+            SYS_ERR("Accept failed!");
 
-    } 
-
-    while (1);
-
-    return 0;
+        PRINT("Client connected\n");
+    
+        ch = fork();
+        if (ch == 0)
+        {
+            do_service(curr_sd);
+            close(curr_sd);
+            exit(0);
+        }
+        
+    }
+    close(base_sd);
 }
 
 
